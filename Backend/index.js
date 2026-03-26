@@ -1,39 +1,25 @@
 const express = require('express');
-const app = express()
-app.use(express.json())
+const mongoose = require('mongoose');
+const cors = require('cors');
+require('dotenv').config();
 
-app.listen(3000, async () => {
-    console.log("Server Started");
-    
-})
+const placesRouter = require('./routes/places'); // 👈 import routes
 
-app.get("/",async (req,res) => {
-    res.json({
-        "Msg":"Welcome"
-    })
-})
+const app = express();
+app.use(express.json());
+app.use(cors());
 
-app.get("/travel",async (req,res) => {
-    res.json({
-        "Places":[
-            {"Country":"Japan","Place":"Osaka"},{"Country":"UK","Place":"London"}
-        ]
-    })
-})
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB Connected ✅"))
+  .catch((err) => console.log("DB Error ❌", err));
 
-app.get("/travel/:id",async (req,res) => {
-    const {id} = req.params
-    console.log(id);
-    
-    res.json({
-        "Msg":"Welcome"
-    })
-})
+app.get("/", (req, res) => {
+  res.json({ msg: "Nature Explorer API is running 🌿" });
+});
 
-app.post("/travel",async (req,res) => {
-    const {countries,places} = req.body
-    console.log(countries,places)
-    res.json({
-        "Msg":"Success"        
-    })
-})
+app.use('/places', placesRouter); // 👈 use the routes
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT} 🚀`);
+});
