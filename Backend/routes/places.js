@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Place = require('../models/Place');
+const protect = require('../middleware/authMiddleware'); // 👈 import middleware
 
-// GET all places
+// PUBLIC routes — anyone can view
 router.get('/', async (req, res) => {
   try {
     const places = await Place.find();
@@ -12,7 +13,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET single place by ID
 router.get('/:id', async (req, res) => {
   try {
     const place = await Place.findById(req.params.id);
@@ -23,22 +23,35 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST add a new place
-router.post('/', async (req, res) => {
+// PROTECTED routes — must be logged in
+router.post('/', protect, async (req, res) => {
   try {
-    const newPlace = new Place(req.body);
-    const saved = await newPlace.save();
-    res.status(201).json(saved);
+    const place = new Place({
+      ...req.body,
+      createdBy: req.user.id  // 👈 attach logged-in user's ID
+    });
+    await place.save();
+    res.status(201).json(place);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-// DELETE a place
-router.delete('/:id', async (req, res) => {
+router.put('/:id', protect, async (req, res) => {
   try {
-    await Place.findByIdAndDelete(req.params.id);
-    res.json({ msg: 'Place deleted successfully' });
+    const place = await Place.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!place) return res.status(404).json({ error: 'Place not found' });
+    res.json(place);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.delete('/:id', protect, async (req, res) => {
+  try {
+    const place = await Place.findByIdAndDelete(req.params.id);
+    if (!place) return res.status(404).json({ error: 'Place not found' });
+    res.json({ message: 'Place deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
